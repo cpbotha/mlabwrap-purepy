@@ -39,7 +39,10 @@ def find_matlab_process():
   The paths we will search are in the format:
   /Applications/MATLAB_R[YEAR][VERSION].app/bin/matlab
   We will try the latest version first. If no path is found, None is reutrned.
+
+  :returns: Full path to the matlab executable.
   """
+
   base_path = '/Applications/MATLAB_R%d%s.app/bin/matlab'
   years = range(2050,1990,-1)
   versions = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
@@ -55,12 +58,22 @@ def find_matlab_version(process_path):
   
   If we couldn't gues the version, None is returned.
   """
+
   bin_path = os.path.dirname(process_path)
   matlab_path = os.path.dirname(bin_path)
-  matlab_dir_name = os.path.basename(matlab_path)
-  version = matlab_dir_name.replace('MATLAB_R', '').replace('.app', '')
+
+  # cpbotha says:
+  # in Linux at least, there is a file called .VERSION in the matlab 
+  # path.
+  # In future, rather parse matlab_path/toolbox/matlab/general/contents.m 
+  # for string like "% MATLAB Version 7.11 (R2010b) 03-Aug-2010"
+  version_file = os.path.join(matlab_path, '.VERSION')
+
+  version = file(version_file).read().strip()
+
   if not is_valid_version_code(version):
     return None
+
   return version
 
 def is_valid_version_code(version):
