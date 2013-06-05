@@ -26,16 +26,17 @@ def open(arg):
   if is_win:
     ret = MatlabConnection()
     ret.open()
+
   else:
     if settings.MATLAB_PATH != 'guess':
       matlab_path = settings.MATLAB_PATH + '/bin/matlab'
+
     else:
       matlab_path = 'guess'
-    try:
-      ret = MatlabConnection(matlab_path)
-      ret.open()
-    except:
-      print 'Could not open matlab, is it in %s?' % matlab_path
+
+  ret = MatlabConnection(matlab_path)
+  ret.open()
+
   return ret
   
 def close(matlab):
