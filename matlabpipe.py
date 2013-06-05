@@ -33,25 +33,53 @@ class MatlabConnectionError(Exception):
   """Raised for errors related to the Matlab connection."""
   pass
 
+def find_executable_in_path(executable):
+    """Find executable in path.
+
+    Based on http://stackoverflow.com/a/5227009/532513, this goes
+    through all the paths in your PATH environment variable, and returns
+    the first one containing executable. It is similar to the unix
+    `which` command.
+
+    :author: Charl P. Botha <cpbotha@vxlabs.com>
+    """
+
+    paths = os.environ.get('PATH', '').split(os.pathsep)
+    for path in paths:
+        full = os.path.join(path, executable)
+        if os.path.exists(full):
+            return full
+
+    return None
+
 def find_matlab_process():
-  """" Tries to guess matlab process path on osx machines.
+  """" Tries to guess matlab process path on unix and osx machines.
+
+  On non-mac machines, simply tries to find matlab in the path.
   
-  The paths we will search are in the format:
+  On Macs, the paths we will search are in the format:
   /Applications/MATLAB_R[YEAR][VERSION].app/bin/matlab
   We will try the latest version first. If no path is found, None is reutrned.
 
   :returns: Full path to the matlab executable.
   """
 
-  base_path = '/Applications/MATLAB_R%d%s.app/bin/matlab'
-  years = range(2050,1990,-1)
-  versions = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
-  for year in years:
-    for version in versions:
-      matlab_path = base_path % (year, version)
-      if os.path.exists(matlab_path):
-        return matlab_path
-  return None
+  if sys.platform == 'mac':
+      # this is from the old code. I don't have a Mac to test, but it
+      # looks OK.
+      base_path = '/Applications/MATLAB_R%d%s.app/bin/matlab'
+      years = range(2050,1990,-1)
+      versions = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+      for year in years:
+        for version in versions:
+          matlab_path = base_path % (year, version)
+          if os.path.exists(matlab_path):
+            return matlab_path
+      return None
+
+  else:
+      # see if we can find this in the path
+      return find_executable_in_path('matlab')
 
 def find_matlab_version(process_path):
   """ Tries to guess matlab's version according to its process path.
