@@ -69,7 +69,10 @@ def find_matlab_version(process_path):
   # for string like "% MATLAB Version 7.11 (R2010b) 03-Aug-2010"
   version_file = os.path.join(matlab_path, '.VERSION')
 
-  version = file(version_file).read().strip()
+  # the file contains just R2010b
+  # we want to end up with 2010b (that's what the code expects)
+  version = file(version_file).read().strip()[1:]
+  print "Found version:", version, "at", process_path
 
   if not is_valid_version_code(version):
     return None
