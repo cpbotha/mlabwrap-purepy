@@ -18,9 +18,11 @@ improved by `Charl Botha <http://charlbotha.com>`_.
 
 Improvements
 ------------
-* Determination of Matlab binary path and versioning.
+* More intelligent determination of Matlab binary path and versioning.
 * Error reporting.
 * Documentation.
+* setuptools configuration, so you can install mlabwrap with a
+  single pip invocation! See below for details.
 
 Quickstart
 ----------
