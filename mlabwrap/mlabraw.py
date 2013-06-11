@@ -10,47 +10,41 @@ import sys
 
 is_win = sys.platform == 'win32'
 if is_win:
-  from matlabcom import MatlabCom as MatlabConnection
-  from matlabcom import MatlabError as error
+    from matlabcom import MatlabCom as MatlabConnection
+    from matlabcom import MatlabError as error
 else:
-  from matlabpipe import MatlabPipe as MatlabConnection
-  from matlabpipe import MatlabError as error
+    from matlabpipe import MatlabPipe as MatlabConnection
+    from matlabpipe import MatlabError as error
 
-try:
-  import settings
-except:
-  class settings:
-    MATLAB_PATH = 'guess'
 
-def open(arg):
-  if is_win:
-    ret = MatlabConnection()
-    ret.open()
+def open(matlab_binary_path):
 
-  else:
-    if settings.MATLAB_PATH != 'guess':
-      matlab_path = settings.MATLAB_PATH + '/bin/matlab'
+    if is_win:
+        ret = MatlabConnection()
+        ret.open()
 
     else:
-      matlab_path = 'guess'
+        ret = MatlabConnection(matlab_binary_path)
+        ret.open()
 
-  ret = MatlabConnection(matlab_path)
-  ret.open()
+    return ret
 
-  return ret
-  
+
 def close(matlab):
-  matlab.close()
+    matlab.close()
+
 
 def eval(matlab, exp, log=False):
-  if log or is_win:
-    matlab.eval(exp)
-  else:
-    matlab.eval(exp, print_expression=False, on_new_output=None)
-  return ''
+    if log or is_win:
+        matlab.eval(exp)
+    else:
+        matlab.eval(exp, print_expression=False, on_new_output=None)
+    return ''
+
 
 def get(matlab, var_name):
-  return matlab.get(var_name)
+    return matlab.get(var_name)
+
 
 def put(matlab, var_name, val):
-  matlab.put({var_name : val})
+    matlab.put({var_name: val})

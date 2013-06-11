@@ -2,6 +2,12 @@
 ################## mlabwrap: transparently wraps matlab(tm) ##################
 ##############################################################################
 ##
+## This is a fork of the original mlabwrap. It's pure Python, has a bunch of
+## miscellaneous improvements, and has changed the invocation of mlabwrap to
+## allow for the easier specification of your matlab path on Linux and OSX.
+##
+## See https://github.com/cpbotha/mlabwrap-purepy
+##
 ## o author: Alexander Schmolck <a.schmolck@gmx.net>
 ## o created: 2002-05-29 21:51:59+00:40
 ## o version: see `__version__`
@@ -55,9 +61,11 @@ mlabwrap
 ========
 
 This module implements a powerful and simple to use wrapper that makes using
-matlab(tm) from python almost completely transparent. To use simply do:
+matlab(tm) from python almost completely transparent. To use simply do (changed
+in the cpbotha fork):
 
->>> from mlabwrap import mlab
+>>> import mlabwrap
+>>> mlab = mlabwrap.init()
 
 and then just use whatever matlab command you like as follows:
 
@@ -294,6 +302,7 @@ class MlabObjectProxy(object):
     def __del__(self):
         if self._parent is None:
             mlabraw.eval(self._mlabwrap._session, 'clear %s;' % self._name)
+
     def _get_part(self, to_get):
         if self._mlabwrap._var_type(to_get) in self._mlabwrap._mlabraw_can_convert:
             #!!! need assignment to TMP_VAL__ because `mlabraw.get` only works
@@ -301,6 +310,7 @@ class MlabObjectProxy(object):
             mlabraw.eval(self._mlabwrap._session, "TMP_VAL__=%s" % to_get)
             return self._mlabwrap._get('TMP_VAL__', remove=True)
         return type(self)(self._mlabwrap, to_get, self)
+
     def _set_part(self, to_set, value):
         #FIXME s.a.
         if isinstance(value, MlabObjectProxy):
@@ -381,10 +391,20 @@ class MlabWrap(object):
        with '_') to the appropriate matlab function calls. The details of this
        handling can be controlled with a number of instance variables,
        documented below."""
+
     __all__ = [] #XXX a hack, so that this class can fake a module; don't mutate
-    def __init__(self):
+
+    def __init__(self, matlab_binary_path=None, matlab_version=None):
         """Create a new matlab(tm) wrapper object.
+
+        :param matlab_binary_path: This is the full path to the main Matlab
+            executable script on Linux and OSX, e.g.
+            ``/opt/MATLAB/R2010a/matlab``. Not required on Windows. If set to
+            None, mlabwrap will try to find matlab in your path.
+        :param matlab_version: The version string, for example ``2010b``, or
+            None if you want me to deduce it from the matlab path.
         """
+
         self._array_cast  = None
         """specifies a cast for arrays. If the result of an
         operation is a numpy array, ``return_type(res)`` will be returned
@@ -402,7 +422,8 @@ class MlabWrap(object):
         function call. This saves a function call in matlab but means that the
         memory used up by the arguments will remain unreclaimed till
         overwritten."""
-        self._session = mlabraw.open(os.getenv("MLABRAW_CMD_STR", ""))
+        #self._session = mlabraw.open(os.getenv("MLABRAW_CMD_STR", ""))
+        self._session = mlabraw.open(matlab_binary_path)
         atexit.register(lambda handle=self._session: mlabraw.close(handle))
         self._proxies = weakref.WeakValueDictionary()
         """Use ``mlab._proxies.values()`` for a list of matlab object's that
@@ -430,6 +451,12 @@ class MlabWrap(object):
 ##                                        for fv in fieldvalues])
 
     def _var_type(self, varname):
+        """Ask matlab what the type of varname is.
+
+        :param varname: string variable
+        :return: string type, e.g. ``double`` or ``char``.
+        """
+
         mlabraw.eval(self._session,
                      "TMP_CLS__ = class(%(x)s); if issparse(%(x)s),"
                      "TMP_CLS__ = [TMP_CLS__,'-sparse']; end;" % dict(x=varname))
@@ -508,6 +535,7 @@ class MlabWrap(object):
 
         XXX: should we add ``parens`` parameter?
         """
+
         handle_out = kwargs.get('handle_out', _flush_write_stdout)
         #self._session = self._session or mlabraw.open()
         # HACK
@@ -621,8 +649,11 @@ class MlabWrap(object):
         # print_ -> print
         if attr[-1] == "_": name = attr[:-1]
         else             : name = attr
+
         try:
+            # nargout('command') will tell us how many output arguments
             nout = self._do("nargout('%s')" % name)
+
         except mlabraw.error, msg:
             typ = numpy.ravel(self._do("exist('%s')" % name))[0]
             if   typ == 0: # doesn't exist
@@ -632,6 +663,7 @@ class MlabWrap(object):
                     "Couldn't ascertain number of output args"
                     "for '%s', assuming 1." % name)
                 nout = 1
+
         doc = self._do("help('%s')" % name)
         # play it safe only return 1st if nout >= 1
         # XXX are all ``nout>1``s also useable as ``nout==1``s?
@@ -641,9 +673,35 @@ class MlabWrap(object):
         setattr(self, attr, mlab_command)
         return mlab_command
 
+# cpbotha: changing the semantics so that user has to instantiate this, or
+# call the init function, which is a more expected pattern.
+#mlab = MlabWrap()
 
-mlab = MlabWrap()
 MlabError = mlabraw.error
+mlab = None
+
+
+def init(matlab_binary_path=None, matlab_version=None):
+    """Initialise the mlabwrap module and return an MlabWrap object that you can
+    use to talk to the matlab instance.
+
+    Example usage::
+
+        import mlabwrap
+        mlab = mlabwrap.init('/opt/MATLAB/R2010b/bin/matlab')
+        mlab.sort([3,1,2])
+
+    :param matlab_binary_path: See documentation of :class:`MlabWrap`
+    :param matlab_version: See documentation of :class:`MlabWrap`
+    :return: Instance of MlabWrap class.
+    """
+    global mlab
+
+    if mlab is None:
+        mlab = MlabWrap(matlab_binary_path, matlab_version)
+
+    return mlab
+
 
 def saveVarsInMat(filename, varNamesStr, outOf=None, **opts):
     """Hacky convinience function to dump a couple of python variables in a
@@ -660,7 +718,7 @@ def saveVarsInMat(filename, varNamesStr, outOf=None, **opts):
         assert varnames
         mlab._do("clear('%s')" % "', '".join(varnames), nout=0)
 
-__all__ = ['mlab', 'saveVarsInMat', 'MlabWrap', 'MlabError']
+__all__ = ['init', 'mlab', 'saveVarsInMat', 'MlabWrap', 'MlabError']
 
 # Uncomment the following line to make the `mlab` object a library so that
 # e.g. ``from mlabwrap.mlab import plot`` will work
