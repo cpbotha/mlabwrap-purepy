@@ -429,7 +429,11 @@ class MlabWrap(object):
         """Use ``mlab._proxies.values()`` for a list of matlab object's that
         are currently proxied."""
         self._proxy_count = 0
+
+        # due to save stdio defaulting to matlab v4 files, we can unfortunately
+        # only handle these types. sucks!
         self._mlabraw_can_convert = ('double', 'char')
+
         """The matlab(tm) types that mlabraw will automatically convert for us."""
         self._dont_proxy = {'cell' : False}
         """The matlab(tm) types we can handle ourselves with a bit of
@@ -498,16 +502,18 @@ class MlabWrap(object):
             return self._get_values(cell_bits)
         else:
             raise MlabConversionError("Not a 1D cell array")
+
     def _manually_convert(self, varname, vartype):
         if vartype == 'cell':
             return self._get_cell(varname)
 
-
     def _get_values(self, varnames):
         if not varnames: raise ValueError("No varnames") #to prevent clear('')
         res = []
+
         for varname in varnames:
             res.append(self._get(varname))
+
         mlabraw.eval(self._session, "clear('%s');" % "','".join(varnames)) #FIXME wrap try/finally?
         return res
 
@@ -586,10 +592,12 @@ class MlabWrap(object):
                 mlabraw.eval(self._session, "clear('%s');" %
                              "','".join(tempargs))
     # this is really raw, no conversion of [[]] -> [], whatever
+
     def _get(self, name, remove=False):
-        r"""Directly access a variable in matlab space. 
+        """Directly access a variable in matlab space.
 
         This should normally not be used by user code."""
+
         # FIXME should this really be needed in normal operation?
         if name in self._proxies: return self._proxies[name]
         varname = name
