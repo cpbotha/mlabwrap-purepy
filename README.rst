@@ -19,6 +19,9 @@ improved by `Charl Botha <http://charlbotha.com>`_.
 Improvements
 ------------
 * More intelligent determination of Matlab binary path and versioning.
+* Many bug fixes for scipy 0.12 + matlab 2011b.
+* ``mlab.name`` will return the value of matlab variable ``name``. This syntax
+  only used to work for invoking functions.
 * Error reporting.
 * Documentation.
 * setuptools configuration, so you can install mlabwrap with a

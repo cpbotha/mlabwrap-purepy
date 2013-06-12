@@ -553,6 +553,7 @@ class MlabWrap(object):
         #XXX what to do with matlab screen output
         argnames = []
         tempargs = []
+
         try:
             for count, arg in enumerate(args):
                 if isinstance(arg, MlabObjectProxy):
@@ -577,6 +578,7 @@ class MlabWrap(object):
             if nout == 0:
                 handle_out(mlabraw.eval(self._session, cmd))
                 return
+
             # deal with matlab-style multiple value return
             resSL = ((["RES%d__" % i for i in range(nout)]))
             handle_out(mlabraw.eval(self._session, '[%s]=%s;' % (", ".join(resSL), cmd)))
@@ -598,7 +600,10 @@ class MlabWrap(object):
     def _get(self, name, remove=False):
         """Directly access a variable in matlab space.
 
-        This should normally not be used by user code."""
+        This should normally not be used by user code.
+
+        :returns: value of the matlab variable named ``name``.
+        """
 
         # FIXME should this really be needed in normal operation?
         if name in self._proxies: return self._proxies[name]
@@ -678,8 +683,16 @@ class MlabWrap(object):
         # nargout, which would give us timeouts.
         typ = int(self._do("exist('%s')" % name))
 
-        if   typ == 0: # doesn't exist
+        if   typ == 0:
+            # doesn't exist
             raise AttributeError("No such matlab object: %s" % name)
+
+        elif typ == 1:
+            # cpbotha:
+            # it's a variable in the workspace
+            # let's be nice and return its value to the user
+            # FIXME: handle more types
+            return self._get(name)
 
         try:
             # nargout('command') will tell us how many output arguments
