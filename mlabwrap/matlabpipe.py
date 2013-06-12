@@ -358,6 +358,7 @@ class MatlabPipe(object):
     def _read_until(self, wait_for_str, on_new_output=sys.stdout.write):
         all_output = StringIO()
         output_tail = self.stdout_to_read
+
         while not wait_for_str in output_tail:
             tail_to_remove = output_tail[:-len(output_tail)]
             output_tail = output_tail[-len(output_tail):]
@@ -367,10 +368,17 @@ class MatlabPipe(object):
                 raise MatlabConnectionError('timeout')
             new_output = self.process.stdout.read(65536)
             output_tail += new_output
+
         chunk_to_take, chunk_to_keep = output_tail.split(wait_for_str, 1)
+
+        # output chunk_to_take before wait_for_str (MATLAB_PIPE_COMMAND_ENDED)
+        # is added back on.
+        if on_new_output:
+            on_new_output(chunk_to_take)
+
         chunk_to_take += wait_for_str
         self.stdout_to_read = chunk_to_keep
-        if on_new_output: on_new_output(chunk_to_take)
+
         all_output.write(chunk_to_take)
         all_output.seek(0)
         return all_output.read()

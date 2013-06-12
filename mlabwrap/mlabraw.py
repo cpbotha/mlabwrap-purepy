@@ -37,8 +37,10 @@ def close(matlab):
 def eval(matlab, exp, log=False):
     if log or is_win:
         matlab.eval(exp)
+
     else:
         matlab.eval(exp, print_expression=False, on_new_output=None)
+
     return ''
 
 

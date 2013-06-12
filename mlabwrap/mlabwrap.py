@@ -590,7 +590,8 @@ class MlabWrap(object):
             # got three cases for nout:
             # 0 -> None, 1 -> val, >1 -> [val1, val2, ...]
             if nout == 0:
-                handle_out(mlabraw.eval(self._session, cmd))
+                # cpbotha: log=True so we can see matlab output
+                handle_out(mlabraw.eval(self._session, cmd, log=True))
                 return
 
             # deal with matlab-style multiple value return
