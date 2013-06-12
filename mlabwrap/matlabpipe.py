@@ -213,19 +213,33 @@ class MatlabPipe(object):
             raise MatlabError(ret[begin:end])
         return ret
 
-
     def put(self, name_to_val, oned_as='row', on_new_output=None):
         """ Loads a dictionary of variable names into the matlab shell.
 
-        oned_as is the same as in scipy.io.matlab.savemat function:
-        oned_as : {'column', 'row'}, optional
-        If 'column', write 1-D numpy arrays as column vectors.
-        If 'row', write 1D numpy arrays as row vectors.
+        :param name_to_val: dict with keys the variable names and values the
+            corresponding values. All of these will be passed to the matlab
+            instance.
+
+        :param oned_as: same as in :meth:`scipy.io.matlab.savemat`
+            oned_as : {'column', 'row'}, optional
+            If 'column', write 1-D numpy arrays as column vectors.
+            If 'row', write 1D numpy arrays as row vectors.
         """
+
         self._check_open()
         # We can't give stdin to mlabio.savemat because it needs random access :(
         temp = StringIO()
-        mlabio.savemat(temp, name_to_val, oned_as=oned_as)
+
+        # documentation here:
+        # http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html
+        # cpbotha has set format to 4 so that e.g. integers are converted to
+        # doubles. We need to do this, as the save() method we call from matlab
+        # always defaults to v4 when we write to stdio.
+        # scipy 0.12 support v7, but unfortunately we can't use this due to
+        # matlab (at least 2011b) defaulting to v4 on stdio, even when we
+        # explicitly tell it to use -v7.
+        mlabio.savemat(temp, name_to_val, oned_as=oned_as, format='4')
+
         temp.seek(0)
         temp_str = temp.read()
         temp.close()
@@ -257,18 +271,23 @@ class MatlabPipe(object):
         if single_itme:
             names_to_get = [names_to_get]
 
-        if names_to_get == None:
+        if names_to_get is None:
             self.process.stdin.write('save stdio;\n')
 
         else:
             # Make sure that we throw an exception if the names are not defined.
             for name in names_to_get:
-                self.eval('%s;' % name, print_expression=False,
+                self.eval('%s' % name, print_expression=False,
                           on_new_output=on_new_output)
 
-            #print 'save(\'stdio\', \'%s\');\n' % '\', \''.join(names_to_get)
-            self.process.stdin.write(
-                "save('stdio', '%s', '-v6');\n" % '\', \''.join(names_to_get))
+            # cpbotha: just tested with matlab 2011b
+            # I can save int64 arrays to file with -v7
+            # however, as soon as 'stdio' is the file, it defaults to -v4 and
+            # can't save int64
+            ml_save_cmd = \
+                "save('stdio', '%s', '-v7');\n" % '\', \''.join(names_to_get)
+
+            self.process.stdin.write(ml_save_cmd)
 
         # We have to read to a temp buffer because mlabio.loadmat needs
         # random access :(
