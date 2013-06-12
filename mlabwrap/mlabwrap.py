@@ -433,14 +433,16 @@ class MlabWrap(object):
         # due to save stdio defaulting to matlab v4 files, we can unfortunately
         # only handle these types. sucks!
         self._mlabraw_can_convert = ('double', 'char')
-
         """The matlab(tm) types that mlabraw will automatically convert for us."""
+
         self._dont_proxy = {'cell' : False}
         """The matlab(tm) types we can handle ourselves with a bit of
            effort. To turn on autoconversion for e.g. cell arrays do:
            ``mlab._dont_proxy["cell"] = True``."""
+
     def __del__(self):
         mlabraw.close(self._session)
+
     def _format_struct(self, varname):
         res = []
         fieldnames = self._do("fieldnames(%s)" % varname)
@@ -647,30 +649,47 @@ class MlabWrap(object):
     # XXX this method needs some refactoring, but only after it is clear how
     # things should be done (e.g. what should be extracted from docstrings and
     # how)
+
+    # TODO cpbotha: implement _getAttributeNames to help ipython with completion
     def __getattr__(self, attr):
         """Magically creates a wapper to a matlab function, procedure or
-        object on-the-fly."""
+        object on-the-fly.
+        """
+
         if re.search(r'\W', attr): # work around ipython <= 0.7.3 bug
             raise ValueError("Attributes don't look like this: %r" % attr)
-        if attr.startswith('__'): raise AttributeError, attr
+
+        if attr.startswith('__'):
+            raise AttributeError, attr
+
         assert not attr.startswith('_') # XXX
+
         # print_ -> print
-        if attr[-1] == "_": name = attr[:-1]
-        else             : name = attr
+        if attr[-1] == "_":
+            name = attr[:-1]
+
+        else:
+            name = attr
+
+        # cpbotha: at least with Linux, don't need to use numpy.ravel()
+        # anymore, because loadmat() can also return scalar values
+        # this comes back as up double, we cast to int.
+        # furthermore, these days we FIRST check for existence _before_ calling
+        # nargout, which would give us timeouts.
+        typ = int(self._do("exist('%s')" % name))
+
+        if   typ == 0: # doesn't exist
+            raise AttributeError("No such matlab object: %s" % name)
 
         try:
             # nargout('command') will tell us how many output arguments
             nout = self._do("nargout('%s')" % name)
 
         except mlabraw.error, msg:
-            typ = numpy.ravel(self._do("exist('%s')" % name))[0]
-            if   typ == 0: # doesn't exist
-                raise AttributeError("No such matlab object: %s" % name)
-            else:
-                warnings.warn(
-                    "Couldn't ascertain number of output args"
-                    "for '%s', assuming 1." % name)
-                nout = 1
+            warnings.warn(
+                "Couldn't ascertain number of output args"
+                "for '%s', assuming 1." % name)
+            nout = 1
 
         doc = self._do("help('%s')" % name)
         # play it safe only return 1st if nout >= 1
