@@ -54,7 +54,8 @@ def find_executable_in_path(executable):
     for path in paths:
         full = os.path.join(path, executable)
         if os.path.exists(full):
-            return full
+            # if symlink, realpath will resolve it to its canonical location
+            return os.path.realpath(full)
 
     return None
 
@@ -146,6 +147,14 @@ class MatlabPipe(object):
 
         if matlab_binary_path is None:
             matlab_binary_path = find_matlab_process()
+
+        else:
+            # could be that user has specified symlinks, or relative paths
+            # resolve all of that with realpath
+            matlab_binary_path = os.path.realpath(matlab_binary_path)
+
+        if matlab_binary_path is None or not os.path.exists(matlab_binary_path):
+            raise MatlabConnectionError('Could not locate matlab binary.')
 
         if matlab_version is None:
             matlab_version = find_matlab_version(matlab_binary_path)

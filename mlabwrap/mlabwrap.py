@@ -746,6 +746,15 @@ def init(matlab_binary_path=None, matlab_version=None):
         mlab = mlabwrap.init('/opt/MATLAB/R2010b/bin/matlab')
         mlab.sort([3,1,2])
 
+    Idempotent, so you can call init again, also without parameters, to get same
+    mlab instance::
+
+        mlab = mlabwrap.init()
+
+    Or just get it from the package::
+
+        mlab = mlabwrap.mlab
+
     :param matlab_binary_path: See documentation of :class:`MlabWrap`
     :param matlab_version: See documentation of :class:`MlabWrap`
     :return: Instance of MlabWrap class.
