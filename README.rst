@@ -43,3 +43,22 @@ Install mlabwrap-purepy::
 These instructions will install pip, numpy, scipy and mlabwrap-purepy 
 system-wide. If you're hip enough to use `virtualenv`, you're hip 
 enough to figure out how to do this in a virtualenv. :)
+
+Using from Python
+~~~~~~~~~~~~~~~~~
+
+Also see the docstring in mlabwrap.py. It goes something like this::
+
+    import mlabwrap
+    mlab = mlabwrap.init()
+
+If the main matlab executable (or a symlink to it) is not on your system PATH,
+pass its full path as the first parameter to init. Now you can do::
+
+    sorted = mlab.sort([1 2 3])
+
+Or even::
+
+    mlab._do("a = [3 2 1]; b = mean(a);", nout=0)
+    print mlab.b
+

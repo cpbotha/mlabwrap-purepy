@@ -67,7 +67,9 @@ in the cpbotha fork):
 >>> import mlabwrap
 >>> mlab = mlabwrap.init()
 
-and then just use whatever matlab command you like as follows:
+(if matlab not on path, specify its full path as the first argument to init)
+
+... and then just use whatever matlab command you like as follows:
 
 >>> mlab.plot(range(10), 'ro:')
 
