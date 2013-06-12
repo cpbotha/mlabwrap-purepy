@@ -12,8 +12,11 @@ so this module will only work under unix (or mac osx).
 
 Author: Dani Valevski <daniva@gmail.com>
 Dependencies: scipy
-Tested Matlab Versions: 2009b, 2010a, 2010b, 2011a 
+Tested Matlab Versions: 2009b, 2010a, 2010b, 2011a, 2011b
 License: MIT
+
+Fixes and improvements by `Charl Botha <http://charlbotha.com>`_ (scipy 0.12,
+documentation, finding matlab, code cleanups).
 """
 
 from cStringIO import StringIO
@@ -116,9 +119,9 @@ def find_matlab_version(process_path):
 def is_valid_version_code(version):
     """ Checks that the given version code is valid.
     """
-    return version != None and len(version) == 5 and \
-           int(version[:4]) in range(1990, 2050) and \
-           version[4] in ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+    return version is not None and len(version) == 5 and \
+        int(version[:4]) in range(1990, 2050) and \
+        version[4] in ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
 
 class MatlabPipe(object):
@@ -168,15 +171,18 @@ class MatlabPipe(object):
             raise MatlabConnectionError(
                 'Matlab(TM) process is still active. Use close to '
                 'close it')
+
         self.process = subprocess.Popen(
             [self.matlab_binary_path, '-nojvm', '-nodesktop'],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
+
         flags = fcntl.fcntl(self.process.stdout, fcntl.F_GETFL)
         fcntl.fcntl(self.process.stdout, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
         if print_matlab_welcome:
             self._sync_output()
+
         else:
             self._sync_output(None)
 
@@ -200,17 +206,21 @@ class MatlabPipe(object):
         encountered. The default value prints the new output to the screen.
         The return value of the function is the matlab output following the call.
         """
+
         self._check_open()
         if print_expression:
             print expression
+
         self.process.stdin.write(expression)
         self.process.stdin.write('\n')
         ret = self._sync_output(on_new_output)
+
         # TODO(dani): Use stderr to identify errors.
         if identify_errors and ret.rfind('???') != -1:
             begin = ret.rfind('???') + 4
             end = ret.find('\n', begin)
             raise MatlabError(ret[begin:end])
+
         return ret
 
     def put(self, name_to_val, oned_as='row', on_new_output=None):
@@ -415,7 +425,6 @@ class MatlabPipe(object):
 
 if __name__ == '__main__':
     import unittest
-
 
     class TestMatlabPipe(unittest.TestCase):
         def setUp(self):
