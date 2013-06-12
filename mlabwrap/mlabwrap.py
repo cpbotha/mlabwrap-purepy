@@ -735,7 +735,7 @@ class MlabWrap(object):
 #mlab = MlabWrap()
 
 MlabError = mlabraw.error
-mlab = None
+_mlab = None
 
 
 def init(matlab_binary_path=None, matlab_version=None):
@@ -753,20 +753,16 @@ def init(matlab_binary_path=None, matlab_version=None):
 
         mlab = mlabwrap.init()
 
-    Or just get it from the package::
-
-        mlab = mlabwrap.mlab
-
     :param matlab_binary_path: See documentation of :class:`MlabWrap`
     :param matlab_version: See documentation of :class:`MlabWrap`
     :return: Instance of MlabWrap class.
     """
-    global mlab
+    global _mlab
 
-    if mlab is None:
-        mlab = MlabWrap(matlab_binary_path, matlab_version)
+    if _mlab is None:
+        _mlab = MlabWrap(matlab_binary_path, matlab_version)
 
-    return mlab
+    return _mlab
 
 
 def saveVarsInMat(filename, varNamesStr, outOf=None, **opts):
@@ -784,7 +780,7 @@ def saveVarsInMat(filename, varNamesStr, outOf=None, **opts):
         assert varnames
         mlab._do("clear('%s')" % "', '".join(varnames), nout=0)
 
-__all__ = ['init', 'mlab', 'saveVarsInMat', 'MlabWrap', 'MlabError']
+__all__ = ['init', 'saveVarsInMat', 'MlabWrap', 'MlabError']
 
 # Uncomment the following line to make the `mlab` object a library so that
 # e.g. ``from mlabwrap.mlab import plot`` will work
