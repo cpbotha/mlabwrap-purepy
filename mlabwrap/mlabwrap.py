@@ -97,7 +97,21 @@ as usual:
 
 In almost all cases that should be enough -- if you need to do trickier
 things, then get raw with ``mlab._do``, or build your child class that
-handles what you want.
+handles what you want. Small example with ``mlab._do``:
+
+>>> mlab._do("a = [2 3 1]; x = sort(a);", nout=0) # nout=0 important!
+>>> print mlab.a, mlab.x
+
+If you have a user-defined ``some_function.m`` in the matlab path, you can
+invoke it like this:
+
+>>> ret = mlab.some_function(param1, param2)
+
+The contents of some_function.m would look like this for example::
+
+    function ret = some_function(param1, param2)
+        ret = param1 + param2
+    end
 
 
 Fine points and limitations
