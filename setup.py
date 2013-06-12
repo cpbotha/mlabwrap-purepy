@@ -15,7 +15,7 @@ setup(
     packages=find_packages(),
     # on Windows it only seems to need numpy
     # on Linux it needs both numpy and scipy
-    install_requires = ['numpy', 'scipy'],
+    install_requires = ['numpy', 'scipy >= 0.12.0'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
