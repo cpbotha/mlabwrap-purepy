@@ -23,6 +23,7 @@ from cStringIO import StringIO
 import fcntl
 import numpy as np
 import os
+import re
 import scipy.io as mlabio
 import select
 import subprocess
@@ -99,22 +100,28 @@ def find_matlab_version(process_path):
     bin_path = os.path.dirname(process_path)
     matlab_path = os.path.dirname(bin_path)
 
-    # cpbotha says:
-    # in Linux at least, there is a file called .VERSION in the matlab
-    # path.
-    # In future, rather parse matlab_path/toolbox/matlab/general/contents.m
-    # for string like "% MATLAB Version 7.11 (R2010b) 03-Aug-2010"
-    version_file = os.path.join(matlab_path, '.VERSION')
+    # e.g. /opt/MATLAB/R2011b/toolbox/matlab/general
+    main_contents_path = os.path.join(matlab_path,
+                                      'toolbox', 'matlab', 'general',
+                                      'Contents.m')
 
-    # the file contains just R2010b
-    # we want to end up with 2010b (that's what the code expects)
-    version = file(version_file).read().strip()[1:]
-    print "Found version:", version, "at", process_path
+    with file(main_contents_path) as c:
+        # get the complete file contents, it's a few kilobytes
+        s = c.read()
+        # according to the code in ver.m, the second line of this Contents.m
+        # should be for example:
+        # % MATLAB Version 7.13 (R2011b) 08-Jul-2011
+        # it's a small file, so let's just search for the string with a regexp
+        mo = re.search('^% MATLAB Version ([0-9\.]+) \(R([0-9]+[a-z])\) .*',
+                       s, re.MULTILINE)
 
-    if not is_valid_version_code(version):
-        return None
+        if mo:
+            # mo.groups() should be e.g. ('7.13', '2011b')
+            version = mo.groups()[1]
+            print "Found version:", version, "at", process_path
+            return version
 
-    return version
+    return None
 
 
 def is_valid_version_code(version):
